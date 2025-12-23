@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約照合AI - ホテル業務の工数を半分以下へ</title>
+    <style>
+        /* リセット & 基本設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+            line-height: 1.7;
+            color: #333;
+            background: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* ヘッダー */
+        header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.95;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 35px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #1e3a8a;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            color: #1e3a8a;
+        }
+
+        /* セクション共通 */
+        section {
+            padding: 80px 20px;
+            background: white;
+            margin-bottom: 2px;
+        }
+
+        section:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #1e3a8a;
+            margin-bottom: 40px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #334155;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        /* 課題セクション */
+        .problems {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-top: 40px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .problem-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-left: 4px solid #3b82f6;
+        }
+
+        .problem-card h4 {
+            color: #1e3a8a;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        /* 解決策セクション */
+        .solutions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-top: 40px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .solution-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-left: 4px solid #60a5fa;
+        }
+
+        .solution-card h4 {
+            color: #3b82f6;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        /* ROIシミュレーター */
+        #simulator {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        .simulator-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1e3a8a;
+        }
+
+        input[type="number"],
+        input[type="range"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        input[type="range"] {
+            padding: 0;
+        }
+
+        select {
+            cursor: pointer;
+            background: white;
+        }
+
+        .range-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .helper-text {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        /* 結果表示 */
+        .results {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .result-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            border-top: 4px solid #3b82f6;
+        }
+
+        .result-label {
+            font-size: 0.95rem;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .result-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+
+        .result-unit {
+            font-size: 1rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        /* グラフ */
+        .chart-container {
+            margin-top: 40px;
+            background: white;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .chart-title {
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+            color: #334155;
+            font-size: 1.1rem;
+        }
+
+        .bar-chart {
+            display: flex;
+            gap: 40px;
+            align-items: flex-end;
+            height: 280px;
+            margin-bottom: 10px;
+            padding: 0 20px;
+        }
+
+        .bar-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .bar {
+            width: 100%;
+            max-width: 180px;
+            background: linear-gradient(to top, #1e3a8a, #3b82f6);
+            border-radius: 12px 12px 0 0;
+            position: relative;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 15px;
+            box-shadow: 0 -4px 10px rgba(59, 130, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .bar.after {
+            background: linear-gradient(to top, #60a5fa, #93c5fd);
+            box-shadow: 0 -4px 10px rgba(96, 165, 250, 0.3);
+        }
+
+        .bar-value {
+            color: white;
+            font-weight: 700;
+            font-size: 1.3rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            margin-bottom: 5px;
+        }
+
+        .bar-percentage {
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        .bar-label {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: 600;
+            color: #334155;
+            font-size: 1.05rem;
+        }
+
+        .reduction-badge {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        /* 導入ステップ */
+        .steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 40px;
+            justify-content: center;
+        }
+
+        .step {
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 auto 15px;
+        }
+
+        .step h4 {
+            margin-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        /* FAQ */
+        .faq-item {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+        }
+
+        .faq-question {
+            font-weight: 600;
+            color: #1e3a8a;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .faq-answer {
+            color: #475569;
+            line-height: 1.8;
+        }
+
+        /* フッター */
+        footer {
+            background: #1e293b;
+            color: white;
+            padding: 60px 20px 30px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-section h4 {
+            margin-bottom: 20px;
+            color: #3b82f6;
+        }
+
+        .footer-section p,
+        .footer-section a {
+            color: #cbd5e1;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .contact-form input,
+        .contact-form textarea {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .contact-form textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #334155;
+            color: #94a3b8;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 900px) {
+            .problems,
+            .solutions {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            header p {
+                font-size: 1rem;
+            }
+
+            h2 {
+                font-size: 1.6rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .result-value {
+                font-size: 1.7rem;
+            }
+
+            .steps {
+                flex-direction: column;
+            }
+
+            .problems,
+            .solutions {
+                grid-template-columns: 1fr;
+            }
+
+            .bar-chart {
+                height: 200px;
+                gap: 25px;
+                padding: 0 10px;
+            }
+
+            .bar {
+                max-width: 140px;
+            }
+
+            .bar-value {
+                font-size: 1.1rem;
+            }
+
+            .reduction-badge {
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+        }
+
+        /* アクセシビリティ */
+        :focus {
+            outline: 3px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- ファーストビュー -->
+    <header>
+        <div class="container">
+            <h1>予約照合の"人手"を、AIで半分以下へ。</h1>
+            <p>PMS / OTA / チャットの突合作業を自動化し、フロントの負担とコストを削減</p>
+            <div class="cta-buttons">
+                <a href="#simulator" class="btn btn-primary">ROIを試算する</a>
+                <a href="#contact" class="btn btn-secondary">資料請求</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 課題セクション -->
+    <section id="problems">
+        <div class="container">
+            <h2>ホテル運営の現場で、こんなお悩みはありませんか？</h2>
+            <div class="problems">
+                <div class="problem-card">
+                    <h4>⚠ 予約データの不一致</h4>
+                    <p>PMSとOTA、チャットでの予約情報が食い違い、手作業での突合に時間がかかる。</p>
+                </div>
+                <div class="problem-card">
+                    <h4>⚠ 深夜帯の作業負担</h4>
+                    <p>チェックイン前の確認作業が深夜に発生し、スタッフの負担と人件費が増加。</p>
+                </div>
+                <div class="problem-card">
+                    <h4>⚠ 繁忙期のミスリスク</h4>
+                    <p>ハイシーズンに照合ミスが増え、二重予約やお客様対応の問題が発生。</p>
+                </div>
+                <div class="problem-card">
+                    <h4>⚠ スタッフ採用難</h4>
+                    <p>単純作業が多く、人材確保が困難。教育コストも高い。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 解決策セクション -->
+    <section id="solution">
+        <div class="container">
+            <h2>予約照合AIが、これらの課題を解決します</h2>
+            <div class="solutions">
+                <div class="solution-card">
+                    <h4>✓ 自動突合</h4>
+                    <p>PMS、OTA、チャットの予約データを自動で照合し、差分を即座に検知。</p>
+                </div>
+                <div class="solution-card">
+                    <h4>✓ 優先順位付け</h4>
+                    <p>要確認事項を重要度順に整理し、対応すべき案件だけをチケット化。</p>
+                </div>
+                <div class="solution-card">
+                    <h4>✓ ワンクリック承認</h4>
+                    <p>確認済み項目はワンクリックで承認完了。作業時間を大幅削減。</p>
+                </div>
+                <div class="solution-card">
+                    <h4>✓ 監査ログ・学習機能</h4>
+                    <p>すべての処理履歴を記録し、AIが学習して精度を向上させます。</p>
+                </div>
+            </div>
+            <div style="margin-top: 50px; text-align: center;">
+                <h3>導入イメージ</h3>
+                <p style="max-width: 700px; margin: 20px auto; line-height: 1.8; color: #475569;">
+                    各システムをコネクト → 差分が自動検知されチケット化 → スタッフがダッシュボードで確認・承認 → 工数が半分以下に削減
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ROIシミュレーター -->
+    <section id="simulator">
+        <div class="container">
+            <h2>ROIシミュレーター：あなたのホテルで、どれだけ削減できる?</h2>
+            <div class="simulator-wrapper">
+                <!-- 入力フォーム -->
+                <div class="form-group">
+                    <label for="rooms">客室数（室）</label>
+                    <input type="number" id="rooms" min="1" value="100" aria-label="客室数">
+                </div>
+
+                <div class="form-group">
+                    <label for="occupancy">平均客室稼働率（%）</label>
+                    <input type="range" id="occupancy" min="0" max="100" value="80" aria-label="平均客室稼働率">
+                    <div class="range-display">
+                        <span>0%</span>
+                        <span id="occupancyValue">80%</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="minutesPerRoom">予約照合工数（1部屋あたり分）</label>
+                    <input type="number" id="minutesPerRoom" min="0.1" step="0.1" value="1.0" aria-label="予約照合工数">
+                    <div class="helper-text">現状の1部屋あたりの照合時間（分）</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="baseWage">ホテルフロント時給（円）</label>
+                    <select id="baseWage" aria-label="ホテルフロント時給">
+                        <option value="1300">1,300円</option>
+                        <option value="1400" selected>1,400円</option>
+                        <option value="1500">1,500円</option>
+                    </select>
+                    <div class="helper-text">実質時給は深夜割増を加味して自動計算されます（×1.05）</div>
+                </div>
+
+                <!-- 結果表示 -->
+                <div class="results">
+                    <div class="result-card">
+                        <div class="result-label">年間削減時間</div>
+                        <div class="result-value" id="savedHours">0</div>
+                        <div class="result-unit">時間</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">年間削減額</div>
+                        <div class="result-value" id="savedCost">¥0</div>
+                        <div class="result-unit"></div>
+                    </div>
+                </div>
+
+                <!-- グラフ -->
+                <div class="chart-container">
+                    <div class="chart-title">年間作業時間の比較</div>
+                    <div class="bar-chart">
+                        <div class="bar-wrapper">
+                            <div class="bar" id="barBefore">
+                                <div class="bar-value" id="barBeforeText">0h</div>
+                                <div class="bar-percentage">100%</div>
+                            </div>
+                            <div class="bar-label">導入前</div>
+                        </div>
+                        <div class="bar-wrapper">
+                            <div class="reduction-badge">60%削減 ✓</div>
+                            <div class="bar after" id="barAfter">
+                                <div class="bar-value" id="barAfterText">0h</div>
+                                <div class="bar-percentage">40%</div>
+                            </div>
+                            <div class="bar-label">導入後</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 導入ステップ -->
+    <section id="steps">
+        <div class="container">
+            <h2>導入までの流れ</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h4>ヒアリング</h4>
+                    <p>現状の業務フローとシステム構成を確認</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h4>連携設定</h4>
+                    <p>PMS・OTA・チャットツールとの接続</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h4>テスト運用</h4>
+                    <p>実データで動作確認と精度調整</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h4>本番稼働</h4>
+                    <p>スタッフ教育とフル稼働開始</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <h4>効果測定</h4>
+                    <p>継続的な改善とサポート</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 安心材料 -->
+    <section id="security">
+        <div class="container">
+            <h2>セキュリティとプライバシー</h2>
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div class="solution-card" style="margin-bottom: 20px;">
+                    <h4>データの取り扱い</h4>
+                    <p>お客様の予約データは暗号化され、厳重に管理されます。個人情報保護法に準拠した運用を行っています。</p>
+                </div>
+                <div class="solution-card" style="margin-bottom: 20px;">
+                    <h4>権限管理</h4>
+                    <p>スタッフごとに適切なアクセス権限を設定でき、操作ログはすべて記録されます。</p>
+                </div>
+                <div class="solution-card">
+                    <h4>学習データ</h4>
+                    <p>AIの学習には匿名化されたパターンデータのみを使用し、お客様固有の情報は外部学習に使用しません。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq">
+        <div class="container">
+            <h2>よくあるご質問</h2>
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div class="faq-item">
+                    <div class="faq-question">Q. どのPMSに対応していますか？</div>
+                    <div class="faq-answer">A. 主要なPMS（サイトコントローラー含む）に対応しています。詳細はお問い合わせください。</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Q. 私たちのデータはAIの学習に使われますか？</div>
+                    <div class="faq-answer">A. お客様固有のデータは外部学習には使用しません。システム内での精度向上のみに活用されます。</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Q. 現場のオペレーションは大きく変わりますか？</div>
+                    <div class="faq-answer">A. 基本的な業務フローはそのままで、照合作業が自動化されるため、むしろシンプルになります。</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Q. 料金体系を教えてください</div>
+                    <div class="faq-answer">A. 客室数や機能により異なります。ROIシミュレーターで概算をご確認いただき、詳細はお問い合わせください。</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">Q. 導入にどのくらいの期間がかかりますか？</div>
+                    <div class="faq-answer">A. ヒアリングから本番稼働まで、通常1〜2ヶ月程度です。規模や連携システムにより変動します。</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- フッター -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>会社情報</h4>
+                    <p>株式会社 予約照合AI</p>
+                    <p>〒100-0001</p>
+                    <p>東京都千代田区千代田1-1-1</p>
+                    <p>TEL: 03-1234-5678</p>
+                </div>
+                <div class="footer-section">
+                    <h4>リンク</h4>
+                    <a href="#problems">課題</a>
+                    <a href="#solution">解決策</a>
+                    <a href="#simulator">ROIシミュレーター</a>
+                    <a href="#faq">FAQ</a>
+                </div>
+                <div class="footer-section">
+                    <h4>お問い合わせ</h4>
+                    <form class="contact-form" onsubmit="handleSubmit(event)">
+                        <input type="text" placeholder="お名前" required aria-label="お名前">
+                        <input type="email" placeholder="メールアドレス" required aria-label="メールアドレス">
+                        <textarea placeholder="お問い合わせ内容" required aria-label="お問い合わせ内容"></textarea>
+                        <button type="submit" class="btn btn-primary">送信</button>
+                    </form>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2025 予約照合AI. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 固定値
+        const NIGHT_PREMIUM_MULTIPLIER = 1.05; // 深夜割増を加味した係数
+        const REDUCTION_RATE = 0.6; // AI導入後の削減率（60%）
+
+        // DOM要素
+        const elements = {
+            rooms: document.getElementById('rooms'),
+            occupancy: document.getElementById('occupancy'),
+            occupancyValue: document.getElementById('occupancyValue'),
+            minutesPerRoom: document.getElementById('minutesPerRoom'),
+            baseWage: document.getElementById('baseWage'),
+            savedHours: document.getElementById('savedHours'),
+            savedCost: document.getElementById('savedCost'),
+            barBefore: document.getElementById('barBefore'),
+            barAfter: document.getElementById('barAfter'),
+            barBeforeText: document.getElementById('barBeforeText'),
+            barAfterText: document.getElementById('barAfterText')
+        };
+
+        // 数値フォーマット（3桁区切り）
+        function formatNumber(num) {
+            return Math.round(num).toLocaleString('ja-JP');
+        }
+
+        // ROI計算（シンプル化されたロジック）
+        function calculate() {
+            // 入力値取得
+            const rooms = parseFloat(elements.rooms.value) || 0;
+            const occupancyRate = parseFloat(elements.occupancy.value) || 0;
+            const minutesPerRoom = parseFloat(elements.minutesPerRoom.value) || 0;
+            const baseWage = parseFloat(elements.baseWage.value) || 0;
+
+            // スライダー値の表示更新
+            elements.occupancyValue.textContent = `${occupancyRate}%`;
+
+            // 計算
+            // A: 年間の総稼働室数
+            const A = rooms * (occupancyRate / 100) * 365;
+
+            // B: 1部屋あたりの作業時間（分）
+            const B = minutesPerRoom;
+
+            // C: 選択した時給
+            const C = baseWage;
+
+            // 実質時給（深夜割増を加味）
+            const effectiveWage = C * NIGHT_PREMIUM_MULTIPLIER;
+
+            // 現状の年間作業時間（時間）
+            const currentHours = (A * B) / 60;
+
+            // 年間削減額の計算
+            // 削減額 = (A × B / 60) × (C × 1.05) × 0.6
+            const savedCostValue = currentHours * effectiveWage * REDUCTION_RATE;
+
+            // 削減時間
+            const savedHoursValue = currentHours * REDUCTION_RATE;
+
+            // AI導入後の残存作業時間
+            const afterHours = currentHours * (1 - REDUCTION_RATE);
+
+            // 結果表示
+            elements.savedHours.textContent = formatNumber(savedHoursValue);
+            elements.savedCost.textContent = `¥${formatNumber(savedCostValue)}`;
+
+            // グラフ更新
+            updateChart(currentHours, afterHours);
+        }
+
+        // グラフ更新
+        function updateChart(beforeHours, afterHours) {
+            const maxHours = Math.max(beforeHours, afterHours);
+            
+            if (maxHours === 0) {
+                elements.barBefore.style.height = '60px';
+                elements.barAfter.style.height = '60px';
+                elements.barBeforeText.textContent = '0h';
+                elements.barAfterText.textContent = '0h';
+                return;
+            }
+
+            // 最大値を基準に高さを計算（最小60px、最大220px）
+            const maxHeight = 220;
+            const minHeight = 60;
+            const beforeHeight = Math.max((beforeHours / maxHours) * maxHeight, minHeight);
+            const afterHeight = Math.max((afterHours / maxHours) * maxHeight, minHeight);
+
+            elements.barBefore.style.height = `${beforeHeight}px`;
+            elements.barAfter.style.height = `${afterHeight}px`;
+            
+            // 数値を見やすくフォーマット
+            elements.barBeforeText.textContent = `${formatNumber(beforeHours)}h`;
+            elements.barAfterText.textContent = `${formatNumber(afterHours)}h`;
+        }
+
+        // イベントリスナー設定
+        elements.rooms.addEventListener('input', calculate);
+        elements.occupancy.addEventListener('input', calculate);
+        elements.minutesPerRoom.addEventListener('input', calculate);
+        elements.baseWage.addEventListener('change', calculate);
+
+        // フォーム送信処理（ダミー）
+        function handleSubmit(event) {
+            event.preventDefault();
+            alert('お問い合わせありがとうございます。\n（このデモでは実際の送信は行われません）');
+            event.target.reset();
+        }
+
+        // 初期計算
+        calculate();
+    </script>
+</body>
+</html>
